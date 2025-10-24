@@ -3,8 +3,6 @@ import LossFunctions.*;
 import ActivationFunctions.*;
 import Network.*;
 
-import ModelFunctions.*;
-
 import java.io.IOException;
 
 public class Main
