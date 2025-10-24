@@ -2,27 +2,28 @@ package LossFunctions;
 
 public class CategoricalCrossEntropyLoss implements LossFunction
 {
-    @Override
-    public double Loss(double[] predictions, double[] targets)
-    {
-        double eps = 1e-15;
-        double loss = 0.0;
+    private static final double Epsilon = 1e-12;
 
-        for (int i = 0; i < predictions.length; i++)
+    @Override
+    public double Loss(double[] target, double[] predicted)
+    {
+        double sum = 0.0;
+
+        for (int i = 0; i < predicted.length; i++)
         {
-            double p = Math.max(eps, Math.min(1 - eps, predictions[i]));
-            loss -= targets[i] * Math.log(p);
+            double p = Math.max(Epsilon, Math.min(1.0 - Epsilon, predicted[i]));
+            sum += target[i] * Math.log(p);
         }
 
-        return loss;
+        return sum / predicted.length;
     }
 
     @Override
-    public double[] Derivate(double[] predictions, double[] targets)
+    public double[] Derivate(double[] target, double[] predicted)
     {
-        double[] gradient = new double[predictions.length];
+        double[] gradient = new double[predicted.length];
 
-        for (int i = 0; i < predictions.length; i++) gradient[i] = predictions[i] - targets[i];
+        for (int i = 0; i < predicted.length; i++) gradient[i] = predicted[i] - target[i];
 
         return gradient;
     }

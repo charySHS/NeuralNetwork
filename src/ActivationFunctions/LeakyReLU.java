@@ -15,5 +15,5 @@ public class LeakyReLU implements ActivationFunction
     public double Derivate(double x) { return x > 0 ? 1.0 : alpha; }
 
     @Override
-    public String GetName() { return "Leaky ReLU"; }
+    public String GetName() { return "LeakyReLU"; }
 }

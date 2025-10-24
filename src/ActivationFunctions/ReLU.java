@@ -9,6 +9,6 @@ public class ReLU implements ActivationFunction
     public double Derivate(double x) { return x > 0 ? 1.0 : 0.0; }
 
     @Override
-    public String GetName() { return "Rectified Linear Unit"; }
+    public String GetName() { return "ReLU"; }
 
 }

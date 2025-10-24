@@ -11,14 +11,13 @@ public class Neuron
     // -- Variables
     // -------------------------------------------------------------------------------------------------------
     private final ActivationFunction ActivationFunction;
-    private final OptimizationType OptimizationType;
+    private final OptimizationType Optimizer;
 
     private double[] Weights;
 
     private double Bias;
     private double Output;
     private double LastZ;
-    private double Delta;
 
     private final double LearningRate;
     private final double Beta1;
@@ -37,10 +36,8 @@ public class Neuron
     // -------------------------------------------------------------------------------------------------------
     public Neuron(int inputCount, ActivationFunction activation, OptimizationType optimizationType, double learningRate, double beta1, double beta2, double decay)
     {
-        Random random = new  Random();
-
         ActivationFunction = activation;
-        OptimizationType = optimizationType;
+        Optimizer = optimizationType;
         LearningRate = learningRate;
         Beta1 = beta1;
         Beta2 = beta2;
@@ -51,6 +48,8 @@ public class Neuron
         VectoredWeights = new double[inputCount];
 
         Bias = 0.0;
+        MomentaryBias = 0.0;
+        VectoredBias = 0.0;
 
         InitializeWeights(inputCount);
     }
@@ -75,7 +74,7 @@ public class Neuron
         {
             double gradient = error * inputs[i];
 
-            if (OptimizationType == OptimizationType.Adam)
+            if (Optimizer == Optimizer.Adam)
             {
                 MomentaryWeights[i] = Beta1 * MomentaryWeights[i] + (1 - Beta1) * gradient;
                 VectoredWeights[i] = Beta2 * VectoredWeights[i] + (1 - Beta2) * gradient * gradient;
@@ -90,7 +89,7 @@ public class Neuron
 
         double gradientBias = error;
 
-        if (OptimizationType == OptimizationType.Adam)
+        if (Optimizer == Optimizer.Adam)
         {
             MomentaryBias = Beta1 * MomentaryBias + (1 - Beta1) * gradientBias;
             VectoredBias = Beta2 * VectoredBias + (1 - Beta2) * gradientBias * gradientBias;
@@ -117,14 +116,26 @@ public class Neuron
         Random random = new  Random();
         double standardDeviation;
 
-        if (ActivationFunction instanceof ReLU || ActivationFunction instanceof LeakyReLU) { standardDeviation = Math.sqrt(2.0 / inputCount); }
-        else if (ActivationFunction instanceof Sigmoid || ActivationFunction instanceof Tanh) { standardDeviation = Math.sqrt(1.0 / inputCount); }
+        if (ActivationFunction instanceof ReLU || ActivationFunction instanceof LeakyReLU) { standardDeviation = Math.sqrt(2.0 / inputCount); }     // HE Initialization
+        else if (ActivationFunction instanceof Sigmoid || ActivationFunction instanceof Tanh) { standardDeviation = Math.sqrt(1.0 / inputCount); }  // Xavier Initialize
         else if (ActivationFunction instanceof Softmax) { standardDeviation = Math.sqrt(1.0 / (inputCount + 1)); }
         else { standardDeviation = 0.01; }
 
         for (int i = 0; i < inputCount; i++) Weights[i] = random.nextGaussian() * standardDeviation;
+        Bias = 0.0;
     }
 
     public double[] GetWeights() { return Weights; }
 
+    public double GetLastZ() { return LastZ; }
+
+    public double GetOutput() { return Output; }
+
+    public double GetBias() { return Bias; }
+
+    public ActivationFunction GetActivationFunction() { return ActivationFunction; }
+
+    public void SetWeights(double[] weights) { Weights = weights.clone(); }
+
+    public void SetBias(double bias) { Bias = bias; }
 }

@@ -1,6 +1,14 @@
 package Network;
 
+import java.io.FileWriter;
+import java.io.IOException;
+
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
 import ActivationFunctions.*;
+import Factories.*;
 import Layers.Layer;
 import LossFunctions.*;
 
@@ -11,8 +19,10 @@ public class NeuralNetwork
     // -------------------------------------------------------------------------------------------------------
 
     private final Layer[] Layers;
+
     private final LossFunction LossFunction;
-    private final OptimizationType OptimizationType;
+
+    private final OptimizationType Optimizer;
 
     private final double LearningRate;
     private final double Beta1;
@@ -25,10 +35,11 @@ public class NeuralNetwork
 
     public NeuralNetwork(LossFunction lossFunction, OptimizationType optimizationType, double learningRate, double beta1, double beta2, double decay, ActivationFunction[] hiddenActivations, int... layerSizes)
     {
-        if (layerSizes.length < 2) throw new IllegalArgumentException("Network must have at least an input and output layer.");
+        if (layerSizes.length < 2) throw new IllegalArgumentException("Network must have at least input and output layer.");
 
         LossFunction = lossFunction;
-        OptimizationType = optimizationType;
+        Optimizer = optimizationType;
+
         LearningRate = learningRate;
         Beta1 = beta1;
         Beta2 = beta2;
@@ -37,13 +48,12 @@ public class NeuralNetwork
         int numLayers = layerSizes.length - 1;
         Layers = new Layer[numLayers];
 
-        if (hiddenActivations.length != numLayers -1) throw new IllegalArgumentException("Number of hidden activations must match hidden layer size.");
+        if (hiddenActivations.length != numLayers -1) throw new IllegalArgumentException("Number of hidden activation functions must match hidden layer count.");
 
-        for (int i = 0; i < numLayers -1; i++) { Layers[i] = new Layer(hiddenActivations[i], optimizationType, learningRate, beta1, beta2, decay, layerSizes[i], layerSizes[i + 1]); }
+        for (int i = 0; i < numLayers - 1; i++) Layers[i] = new Layer(hiddenActivations[i], Optimizer, LearningRate, Beta1, Beta2, Decay, layerSizes[i], layerSizes[i + 1]);
 
-        ActivationFunction outputActivation = (lossFunction instanceof CategoricalCrossEntropyLoss) ? new Softmax() : new Sigmoid();
-
-        Layers[numLayers - 1] = new Layer(outputActivation, optimizationType, learningRate, beta1, beta2, decay, layerSizes[numLayers - 1], layerSizes[numLayers]);
+        ActivationFunction outputActivation = (LossFunction instanceof CategoricalCrossEntropyLoss) ? new Softmax() : new Sigmoid();
+        Layers[numLayers - 1] = new Layer(outputActivation, Optimizer, LearningRate, Beta1, Beta2, Decay, layerSizes[numLayers - 1],  layerSizes[numLayers]);
     }
 
     public double[] Predict(double[] inputs)
@@ -65,17 +75,15 @@ public class NeuralNetwork
 
             for (int i = 0; i < inputs.length; i++)
             {
-                double[] output = Predict(inputs[i]);
-                totalLoss += LossFunction.Loss(targets[i], output);
+                double[] predicted = Predict(inputs[i]);
+                totalLoss += LossFunction.Loss(targets[i], predicted);
 
-                double[] errors = LossFunction.Derivate(targets[i], output);
+                double[] errors = LossFunction.Derivate(targets[i], predicted);
 
-                double[] currentErrors = errors;
-
-                for (int layerIndex = Layers.length - 1; layerIndex >= 0; layerIndex--)
+                for (int l = Layers.length - 1; l >= 0; l--)
                 {
-                    double[] layerInputs = (layerIndex == 0) ? inputs[i] : Layers[layerIndex - 1].GetOutputs();
-                    currentErrors = Layers[layerIndex].Backpropogate(layerInputs, currentErrors, t);
+                    double[] layerInputs = (l == 0) ? inputs[i] : Layers[l - 1].GetOutput();
+                    errors = Layers[l].Backpropagate(layerInputs, errors, t);
                 }
 
                 t++;
@@ -86,9 +94,24 @@ public class NeuralNetwork
             if (epoch % 100 == 0)
             {
                 double currentLearningRate = LearningRate / (1.0 + Decay * epoch);
-                System.out.printf("Epoch %d, Learning Rate=%.5f, Loss=%.6f%n", epoch, currentLearningRate, averageLoss);
+                System.out.printf("Epoch %d, Learning Rate=%.6f, Loss=%.6f%n", epoch, currentLearningRate, averageLoss);
             }
         }
     }
+
+    // -------------------------------------------------------------------------------------------------------
+    // -- Functions
+    // -------------------------------------------------------------------------------------------------------
+
+    public Layer[] GetLayers() { return Layers; }
+
+    public double GetLearningRate() { return LearningRate; }
+
+    public double GetBeta1() { return Beta1; }
+
+    public double GetBeta2() { return Beta2; }
+
+    public double GetDecay() { return Decay; }
+
 }
 
